@@ -3,51 +3,16 @@
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import {
-  GraduationCap,
-  BookOpen,
-  Trophy,
-  Users,
-  MapPin,
-  Phone,
-  Mail,
-  ArrowRight,
-  ShieldCheck,
-  Palette,
-  Atom,
-  Smile,
-  Star,
-  ArrowUpRight,
-  Menu,
-  X,
-  Quote,
-  Camera,
-  MessageCircle,
-  Send
+  GraduationCap, BookOpen, Trophy, Users, MapPin, Phone, Mail, 
+  ArrowRight, ShieldCheck, Palette, Atom, Smile, Star, ArrowUpRight, 
+  Menu, X, Quote, Camera, MessageCircle, Send
 } from "lucide-react";
 
 // --- Mock Data ---
 const students = [
-  {
-    id: 1,
-    name: "Aarav Sharma",
-    achievement: "National Science Olympiad Winner",
-    image: "https://images.unsplash.com/photo-1595454223600-91fbbeb2ccbc?q=80&w=500&auto=format&fit=crop",
-    color: "bg-blue-500",
-  },
-  {
-    id: 2,
-    name: "Priya Patel",
-    achievement: "Lead of School Debate Team",
-    image: "https://images.unsplash.com/photo-1503919005314-30d93d07d823?q=80&w=500&auto=format&fit=crop",
-    color: "bg-pink-500",
-  },
-  {
-    id: 3,
-    name: "Rohan Gupta",
-    achievement: "State Level Football Captain",
-    image: "https://images.unsplash.com/photo-1540479859555-17af45c78602?q=80&w=500&auto=format&fit=crop",
-    color: "bg-yellow-500",
-  },
+  { id: 1, name: "Aarav Sharma", achievement: "National Science Olympiad Winner", image: "https://images.unsplash.com/photo-1595454223600-91fbbeb2ccbc?q=80&w=500&auto=format&fit=crop", color: "bg-blue-500" },
+  { id: 2, name: "Priya Patel", achievement: "Lead of School Debate Team", image: "https://images.unsplash.com/photo-1503919005314-30d93d07d823?q=80&w=500&auto=format&fit=crop", color: "bg-pink-500" },
+  { id: 3, name: "Rohan Gupta", achievement: "State Level Football Captain", image: "https://images.unsplash.com/photo-1540479859555-17af45c78602?q=80&w=500&auto=format&fit=crop", color: "bg-yellow-500" },
 ];
 
 export default function HomePage() {
@@ -63,6 +28,7 @@ export default function HomePage() {
   // --- Chatbot States ---
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const [chatMessages, setChatMessages] = useState<{role: 'user' | 'bot', text: string}[]>([
     { role: 'bot', text: 'Hello! 👋 Welcome to Integrity S & E School. How can I help you today?' }
   ]);
@@ -73,7 +39,7 @@ export default function HomePage() {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [chatMessages, isChatOpen]);
+  }, [chatMessages, isChatOpen, isTyping]);
 
   const paginate = (newDirection: number) => {
     setDirection(newDirection);
@@ -120,32 +86,40 @@ export default function HomePage() {
     }
   };
 
-  // --- Chatbot Logic ---
-  const handleChatSubmit = (e: React.FormEvent) => {
+  // --- Chatbot Logic (Connected to PDF API) ---
+  const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isTyping) return;
 
     const userMsg = chatInput.trim();
     setChatMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setChatInput("");
+    setIsTyping(true);
 
-    // Simulate AI thinking and responding based on keywords
-    setTimeout(() => {
-      const lowerInput = userMsg.toLowerCase();
-      let botReply = "Thank you for your message! For detailed inquiries, please fill out the admission form or call us at +91 7828741586.";
+    try {
+      // Send the message and the history (excluding the first welcome message to save tokens)
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: userMsg,
+          history: chatMessages.slice(1) 
+        }),
+      });
+
+      const data = await response.json();
       
-      if (lowerInput.includes("fee") || lowerInput.includes("cost")) {
-        botReply = "You can download our official Fee Structure PDF from the bottom of this page in the 'Resources' section.";
-      } else if (lowerInput.includes("admission") || lowerInput.includes("apply")) {
-        botReply = "Admissions for the 2026-27 session are currently open! You can fill out the inquiry form in the Contact section above, and we will get back to you.";
-      } else if (lowerInput.includes("location") || lowerInput.includes("address") || lowerInput.includes("where")) {
-        botReply = "Our campus is located Near Panchayat Bhawan, Bhudadaand Bagicha, Dist. Jashpur Nagar, Chhattisgarh 496331.";
-      } else if (lowerInput.includes("class") || lowerInput.includes("grade")) {
-        botReply = "We currently offer admissions from Nursery up to Class 8.";
+      if (response.ok) {
+        setChatMessages(prev => [...prev, { role: 'bot', text: data.reply }]);
+      } else {
+        throw new Error(data.reply);
       }
-
-      setChatMessages(prev => [...prev, { role: 'bot', text: botReply }]);
-    }, 1000);
+    } catch (error) {
+      console.error("Chat Error:", error);
+      setChatMessages(prev => [...prev, { role: 'bot', text: "Sorry, I'm having trouble connecting right now. Please call us at +91 7828741586." }]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const mouseX = useMotionValue(0);
@@ -319,69 +293,28 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* 3. PRESIDENT'S MESSAGE (Interactive Editorial Edition) */}
+      {/* 3. PRESIDENT'S MESSAGE */}
       <section className="py-20 md:py-32 bg-blue-950 text-white relative overflow-hidden group/section">
-        {/* Dynamic Background Glows */}
-        <motion.div 
-          className="absolute top-0 left-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-all duration-1000 group-hover/section:bg-cyan-500/20 group-hover/section:scale-110" 
-        />
-        <motion.div 
-          className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] translate-y-1/2 translate-x-1/2 pointer-events-none transition-all duration-1000 group-hover/section:bg-blue-500/30 group-hover/section:scale-110" 
-        />
+        <motion.div className="absolute top-0 left-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-all duration-1000 group-hover/section:bg-cyan-500/20 group-hover/section:scale-110" />
+        <motion.div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] translate-y-1/2 translate-x-1/2 pointer-events-none transition-all duration-1000 group-hover/section:bg-blue-500/30 group-hover/section:scale-110" />
 
         <div className="max-w-7xl mx-auto px-6 md:px-16 grid md:grid-cols-12 gap-12 md:gap-16 items-center relative z-10">
-          
-          <motion.div 
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="md:col-span-5 relative group/card cursor-pointer"
-          >
+          <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="md:col-span-5 relative group/card cursor-pointer">
             <div className="absolute top-4 left-4 w-full h-full border-2 border-yellow-400/50 rounded-[30px] md:rounded-[40px] -z-10 transition-transform duration-500 group-hover/card:translate-x-4 group-hover/card:translate-y-4 group-hover/card:border-yellow-400" />
-            
             <div className="bg-white p-2 rounded-[30px] md:rounded-[40px] shadow-2xl transition-all duration-500 group-hover/card:-translate-x-2 group-hover/card:-translate-y-2 group-hover/card:shadow-[0_20px_60px_rgba(34,211,238,0.15)] relative overflow-hidden">
-              <img 
-                src="founderpic.jpeg" 
-                alt="President of Integrity Society" 
-                className="w-full h-[350px] md:h-[450px] object-cover rounded-[22px] md:rounded-[32px]  group-hover/card:scale-105 transition-all duration-700" 
-              />
+              <img src="founderpic.jpeg" alt="President" className="w-full h-[350px] md:h-[450px] object-cover rounded-[22px] md:rounded-[32px] group-hover/card:scale-105 transition-all duration-700" />
             </div>
           </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="md:col-span-7"
-          >
+          <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2 }} className="md:col-span-7">
             <div className="flex items-center gap-3 mb-6 group/quote w-max cursor-default">
-              <motion.div 
-                whileHover={{ rotate: 180, scale: 1.1, backgroundColor: "rgba(34, 211, 238, 0.2)" }}
-                transition={{ duration: 0.4, type: "spring" }}
-                className="p-3 bg-blue-900/50 rounded-2xl border border-white/10 text-cyan-400"
-              >
-                <Quote size={28} />
-              </motion.div>
+              <motion.div whileHover={{ rotate: 180, scale: 1.1, backgroundColor: "rgba(34, 211, 238, 0.2)" }} transition={{ duration: 0.4, type: "spring" }} className="p-3 bg-blue-900/50 rounded-2xl border border-white/10 text-cyan-400"><Quote size={28} /></motion.div>
               <p className="text-yellow-400 font-bold tracking-widest uppercase text-sm transition-colors group-hover/quote:text-yellow-300">Message from the Society</p>
             </div>
-            
-            <motion.h2 
-              whileHover={{ x: 10 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="text-3xl md:text-5xl font-black mb-4 leading-tight cursor-default"
-            >
+            <motion.h2 whileHover={{ x: 10 }} transition={{ type: "spring", stiffness: 200 }} className="text-3xl md:text-5xl font-black mb-4 leading-tight cursor-default">
               "Education is the most powerful weapon to <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">change the world.</span>"
             </motion.h2>
-            
-            <motion.div 
-              initial={{ width: 0 }}
-              whileInView={{ width: "5rem" }}
-              viewport={{ once: true }}
-              transition={{ duration: 1, delay: 0.5 }}
-              className="h-1 bg-cyan-500 mb-8 rounded-full" 
-            />
+            <motion.div initial={{ width: 0 }} whileInView={{ width: "5rem" }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.5 }} className="h-1 bg-cyan-500 mb-8 rounded-full" />
             
             <div className="space-y-6">
               <p className="text-blue-100/70 hover:text-white text-sm md:text-lg leading-relaxed font-medium transition-colors duration-300 cursor-default">
@@ -394,13 +327,7 @@ export default function HomePage() {
             
             <div className="mt-10 pt-6 border-t border-white/10 flex justify-between items-end">
               <div>
-                <motion.p 
-                  whileHover={{ scale: 1.05, originX: 0 }}
-                  className="text-3xl md:text-4xl font-black text-white cursor-default" 
-                  style={{ fontFamily: "'Brush Script MT', cursive", letterSpacing: "1px" }}
-                >
-                  Shri Navneet Kumar Sharma
-                </motion.p>
+                <motion.p whileHover={{ scale: 1.05, originX: 0 }} className="text-3xl md:text-4xl font-black text-white cursor-default" style={{ fontFamily: "'Brush Script MT', cursive", letterSpacing: "1px" }}>Shri Navneet Kumar Sharma</motion.p>
                 <p className="text-cyan-400 font-bold text-sm mt-1 uppercase tracking-wider">Founder, Integrity Skill And Education Society</p>
               </div>
             </div>
@@ -690,11 +617,20 @@ export default function HomePage() {
               <div className="flex-1 p-4 overflow-y-auto bg-slate-50 flex flex-col gap-3">
                 {chatMessages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-sm'}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm shadow-sm whitespace-pre-wrap ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-sm'}`}>
                       {msg.text}
                     </div>
                   </div>
                 ))}
+                {isTyping && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1">
+                       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+                       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: "0.2s"}}></span>
+                       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: "0.4s"}}></span>
+                    </div>
+                  </div>
+                )}
                 <div ref={chatEndRef} />
               </div>
 
