@@ -12,15 +12,15 @@ const staffData = [
     subject: "Administration ",
     phone: "+91 7879708984",
     email: "principal.integrity@gmail.com",
-    image: "principal.png",
+    image: "Akansha_photo.jpg",
     isPrincipal: true,
   },
-  { id: 2, name: "Mrs. Sunita Sharma", role: "Senior Teacher", subject: "Science (Physics & Chemistry)", phone: "+91 98765 43211", image: "teach.jpg" },
-  { id: 3, name: "Mr. Ramesh Patel", role: "Teacher", subject: "Mathematics", phone: "+91 98765 43212", image: "teach.jpg" },
-  { id: 4, name: "Ms. Priya Singh", role: "Teacher", subject: "English Literature", phone: "+91 98765 43213", image: "teach.jpg" },
-  { id: 5, name: "Mr. Deepak Verma", role: "Teacher", subject: "Hindi & Sanskrit", phone: "+91 98765 43214", image: "teach.jpg" },
-  { id: 6, name: "Mrs. Anita Desai", role: "Teacher", subject: "Social Studies (SST)", phone: "+91 98765 43215", image: "teach.jpg" },
-  { id: 7, name: "Mr. Vikram Singh", role: "Teacher", subject: "Computer Science", phone: "+91 98765 43216", image: "teach.jpg" },
+  { id: 2, name: "Usha Bhagat", role: "Teacher", subject: "General Knowledge", phone: "+91 98765 43211", image: "usha.png" },
+  { id: 3, name: " Neha Lakra ", role: "Teacher", subject: "Science", phone: "+91 98765 43212", image: "Neha.jpg" },
+  { id: 4, name: "Deepa Toppo", role: "Teacher", subject: "Hindi", phone: "+91 98765 43213", image: "Deepa.jpg" },
+  { id: 5, name: "Anjani Gupta", role: "Teacher", subject: "Mathematics", phone: "+91 98765 43214", image: "Anjani.jpg" },
+  { id: 6, name: "Purnima Chouhan", role: "Teacher", subject: "Sanskrit", phone: "+91 98765 43215", image: "Purnima.jpg" },
+  { id: 7, name: "Maneesha Singh", role: "Teacher", subject: "SST", phone: "+91 98765 43216", image: "Manisha.jpg" },
   { id: 8, name: "Ms. Neha Gupta", role: "Teacher", subject: "Environmental Studies (EVS)", phone: "+91 98765 43217", image: "teach.jpg"},
   { id: 9, name: "Mr. Rahul Yadav", role: "Sports Faculty", subject: "Physical Education (PT)", phone: "+91 98765 43218", image: "teach.jpg"},
   { id: 10, name: "Mrs. Meena Kumari", role: "Primary Teacher", subject: "All Subjects (Nursery - KG2)", phone: "+91 98765 43219", image: "teach.jpg" },
@@ -37,7 +37,7 @@ export default function FacultyPage() {
       {/* 1. ULTRA-MINIMAL HEADER - Optimized for Mobile */}
       <header className="px-4 md:px-16 py-4 md:py-8 absolute top-0 w-full z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
-          <a href="/" className="flex items-center gap-2 text-blue-950 hover:text-blue-600 transition-colors font-bold group bg-white/50 backdrop-blur-md px-3 md:px-5 py-2 md:py-2.5 rounded-full border border-gray-200 shadow-sm text-xs md:text-base">
+          <a href="/#" className="flex items-center gap-2 text-blue-950 hover:text-blue-600 transition-colors font-bold group bg-white/50 backdrop-blur-md px-3 md:px-5 py-2 md:py-2.5 rounded-full border border-gray-200 shadow-sm text-xs md:text-base">
             <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
             <span className="hidden sm:inline">Return Home</span>
             <span className="sm:hidden">Back</span>

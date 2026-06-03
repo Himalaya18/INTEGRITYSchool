@@ -15,6 +15,11 @@ const galleryData = [
   { id: 7, src: "act2.jpeg", title: "Art & Craft Exhibition", category: "Events" },
   { id: 8, src: "dance.jpeg", title: "Teacher's Day Celebration", category: "Events" },
   { id: 9, src: "tree.jpeg", title: "Tree Plantation", category: "Sports" },
+  { id: 10, src: "sport.jpeg", title: "Annual Sports Meet", category: "Sports" },
+  { id: 11, src: "Bag2.jpeg", title: "Annual Function", category: "Events" },
+  { id: 12, src: "ACT132.jpg", title: "ACTIVITY", category: "Events" },
+  { id: 13, src: "ACT321.jpg", title: "ACTIVITY", category: "Events" },
+  { id: 14, src: "Celeb.jpeg", title: "PUJA", category: "Events" },
 ];
 
 // Extract unique categories for the filter buttons

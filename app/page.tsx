@@ -5,14 +5,21 @@ import HomePage from "./components/HomePage";
 import LoadingScreen from "./components/LoadingScreen";
 
 export default function Page() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 5200);
+    const hasLoaded = sessionStorage.getItem("homepage-loaded");
 
-    return () => clearTimeout(timer);
+    if (!hasLoaded) {
+      setLoading(true);
+
+      const timer = setTimeout(() => {
+        setLoading(false);
+        sessionStorage.setItem("homepage-loaded", "true");
+      }, 5200);
+
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   return (

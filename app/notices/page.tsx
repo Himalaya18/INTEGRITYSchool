@@ -1,303 +1,345 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { ArrowLeft, Bell, Calendar, Megaphone, Pin, Info, ChevronDown, BookOpen, PartyPopper, Camera, ArrowRight, ExternalLink } from "lucide-react";
+import { 
+  ArrowLeft, Bell, Calendar, Megaphone, Pin, 
+  Info, ChevronDown, BookOpen, PartyPopper, 
+  Camera, ArrowRight, ExternalLink, AlertTriangle, 
+  PhoneCall, Mail
+} from "lucide-react";
+import { supabase } from "@/supabase";
 
-// --- Mock Data: Update this with your real notices ---
-const noticesData = [
-  {
-    id: 1,
-    title: "Summer Vacation Announcement",
-    date: "May 10, 2026",
-    category: "Holiday",
-    isPinned: true,
-    content: "Dear Parents, the school will remain closed for the Summer Vacation from May 15th to June 30th. Classes will resume normally from July 1st. We wish all students a joyful and safe holiday. Please ensure your children complete their assigned holiday homework.",
-  },
-  {
-    id: 2,
-    title: "Parent-Teacher Meeting (Nursery to Class 8)",
-    date: "May 12, 2026",
-    category: "Important",
-    isPinned: true,
-    content: "A Parent-Teacher Meeting (PTM) is scheduled for this Saturday, May 16th, from 9:00 AM to 12:30 PM. It is mandatory for at least one parent to attend to discuss the student's progress report before the summer break.",
-  },
-  {
-    id: 3,
-    title: "Annual Sports Festival Schedule",
-    date: "May 05, 2026",
-    category: "Event",
-    isPinned: false,
-    content: "We are excited to announce our Internal Sports Festival! Preliminary rounds will begin next week. Students interested in participating in 100m sprint, relay, or long jump must give their names to their respective class teachers by tomorrow.",
-  },
-  {
-    id: 4,
-    title: "Revised School Timings",
-    date: "April 28, 2026",
-    category: "Academics",
-    isPinned: false,
-    content: "Due to the rising temperatures, school timings will be revised to 7:30 AM - 12:30 PM starting from May 1st. School buses will ply accordingly. Please ensure students arrive at the bus stops 30 minutes earlier.",
-  },
-];
+const categories = ["All", "Notice", "Academics", "Holiday", "Event"];
 
-const categories = ["All", "Important", "Academics", "Holiday", "Event"];
-
-// Helper to get icons and colors based on category
 const getCategoryStyles = (category: string) => {
   switch (category) {
-    case "Holiday": return { icon: <PartyPopper size={18} />, color: "bg-green-100 text-green-700 border-green-200" };
-    case "Academics": return { icon: <BookOpen size={18} />, color: "bg-blue-100 text-blue-700 border-blue-200" };
-    case "Event": return { icon: <Calendar size={18} />, color: "bg-purple-100 text-purple-700 border-purple-200" };
-    case "Important": return { icon: <Megaphone size={18} />, color: "bg-red-100 text-red-700 border-red-200" };
-    default: return { icon: <Info size={18} />, color: "bg-gray-100 text-gray-700 border-gray-200" };
+    case "Holiday": return { icon: <PartyPopper size={14} />, color: "bg-emerald-100 text-emerald-700" };
+    case "Academics": return { icon: <BookOpen size={14} />, color: "bg-blue-100 text-blue-700" };
+    case "Event": return { icon: <Calendar size={14} />, color: "bg-purple-100 text-purple-700" };
+    case "Notice": return { icon: <Megaphone size={14} />, color: "bg-rose-100 text-rose-700" };
+    default: return { icon: <Info size={14} />, color: "bg-slate-100 text-slate-700" };
   }
 };
 
 export default function NoticeBoardPage() {
   const [filter, setFilter] = useState("All");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  
+  // Real Database States
+  const [noticesData, setNoticesData] = useState<any[]>([]);
+  const [tickerData, setTickerData] = useState({ text: "", active: false });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    
+    // 1. Fetch Live Notices
+    const { data: posts } = await supabase
+      .from('digital_wall_posts')
+      .select('*')
+      .eq('status', 'Live');
+      
+    if (posts) setNoticesData(posts);
+    
+    // 2. Fetch Ticker Data
+    const { data: settings } = await supabase.from('site_settings').select('*');
+    if (settings) {
+      const textSetting = settings.find((d: any) => d.setting_key === 'ticker_text');
+      const activeSetting = settings.find((d: any) => d.setting_key === 'ticker_active');
+      setTickerData({
+        text: textSetting ? textSetting.setting_value : "",
+        active: activeSetting ? activeSetting.setting_value === 'true' : false
+      });
+    }
+    
+    setIsLoading(false);
+  };
 
   const filteredNotices = noticesData
     .filter((notice) => filter === "All" || notice.category === filter)
     .sort((a, b) => {
-      if (a.isPinned === b.isPinned) return 0;
-      return a.isPinned ? -1 : 1;
+      // Pinned items first, then by date
+      if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
-  const toggleExpand = (id: number) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
-
   return (
-    <div className="min-h-screen bg-[#F8F9FA] font-sans selection:bg-yellow-300 selection:text-blue-900 pb-20 md:pb-32">
+    <div className="min-h-screen bg-[#F8F9FA] font-sans selection:bg-yellow-300 selection:text-blue-900 pb-32">
       
-      {/* 1. HEADER */}
-      <header className="px-4 md:px-16 py-4 md:py-8 absolute top-0 w-full z-40">
+      {/* 1. LIVE TICKER (FIXED & THEMED) */}
+      {tickerData.active && tickerData.text && (
+        <div className="w-full bg-blue-600 text-white py-2.5 overflow-hidden sticky top-0 z-50 shadow-md">
+          <div className="absolute inset-y-0 left-0 bg-blue-700 px-4 md:px-8 flex items-center font-black text-[10px] md:text-xs uppercase tracking-widest z-10 border-r border-blue-500 shadow-xl">
+            <AlertTriangle size={16} className="mr-2 text-yellow-300" /> Live Update
+          </div>
+          <motion.div 
+            className="whitespace-nowrap inline-block text-sm font-bold tracking-wide pl-[140px] md:pl-[200px]"
+            animate={{ x: ["100%", "-100%"] }}
+            transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
+          >
+            <span className="mx-10">{tickerData.text}</span>
+            <span className="mx-10 opacity-50">•</span>
+            <span className="mx-10">{tickerData.text}</span>
+          </motion.div>
+        </div>
+      )}
+      
+      {/* 2. HEADER */}
+      <header className="px-4 md:px-8 lg:px-16 py-6 w-full z-40 bg-transparent">
         <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
-          <a href="/" className="flex items-center gap-2 text-blue-950 hover:text-blue-600 transition-colors font-bold group bg-white/50 backdrop-blur-md px-3 md:px-5 py-2 md:py-2.5 rounded-full border border-gray-200 shadow-sm text-xs md:text-base">
-            <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
-            <span className="hidden sm:inline">Return Home</span>
-            <span className="sm:hidden">Back</span>
+          <a href="/" className="flex items-center gap-2 text-blue-950 hover:text-blue-600 transition-colors font-bold group bg-white/60 backdrop-blur-md px-5 py-2.5 rounded-full border border-slate-200 shadow-sm text-sm">
+            <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden sm:inline">Return to Homepage</span>
           </a>
-          <div className="flex items-center gap-2 md:gap-3 bg-blue-950 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-full shadow-lg">
-            <img src="/logo.png" alt="School Logo" className="w-6 h-6 md:w-8 md:h-8 object-contain" />
-            <span className="text-sm md:text-xl font-black tracking-widest">INTEGRITY</span>
+          <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md border border-slate-200 text-blue-950 px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition-shadow">
+            <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain drop-shadow-sm" />
+            <span className="text-lg font-black tracking-widest hidden sm:inline">INTEGRITY</span>
           </div>
         </div>
       </header>
 
-      {/* 2. HERO SECTION */}
-      <section className="pt-32 md:pt-40 pb-10 md:pb-16 px-6 max-w-7xl mx-auto text-center relative z-10">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-1.5 rounded-full text-[10px] md:text-xl font-black tracking-widest uppercase mb-6 md:mb-8"
-        >
-          <Bell size={14} className="text-yellow-600" />
-          Digital Campus Wall
+      {/* 3. HERO */}
+      <section className="pt-2 pb-12 px-6 max-w-7xl mx-auto text-center">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase mb-6 shadow-sm border border-blue-300">
+          <Bell size={12} className="animate-pulse" /> Digital Campus Wall
         </motion.div>
-        
-        <motion.h1 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-          className="text-4xl sm:text-6xl md:text-7xl font-black text-blue-950 tracking-tight leading-[1.1] mb-6"
-        >
-          Notices & <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-400">Highlights.</span>
+        <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-5xl md:text-7xl font-black text-blue-950 tracking-tight mb-4">
+          Notices & <span className="text-blue-500">Highlights.</span>
         </motion.h1>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-slate-500 font-medium max-w-2xl mx-auto text-sm md:text-base">
+          Stay up to date with the latest announcements, academic schedules, events, and important circulars from Integrity Education.
+        </motion.p>
       </section>
 
-      {/* 3. MAIN CONTENT GRID (Notices on Left, Marketing on Right) */}
-      <section className="px-4 md:px-6 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 relative">
+      {/* 4. MAIN CONTENT */}
+      <section className="px-4 md:px-8 lg:px-16 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           
-          {/* LEFT COLUMN: THE NOTICES (Takes up 8 of 12 columns) */}
+          {/* ================= LEFT: NOTICES FEED ================= */}
           <div className="lg:col-span-8">
             
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2 md:gap-3 mb-8">
-              {categories.map((cat, idx) => (
-                <motion.button
-                  key={idx}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+            {/* Unified White Pill Filter Bar */}
+            <div className="flex flex-nowrap overflow-x-auto no-scrollbar items-center bg-white rounded-full shadow-sm p-1.5 mb-8 border border-slate-100 w-full sm:w-max">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
                   onClick={() => setFilter(cat)}
-                  className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full font-bold text-xs md:text-sm transition-all duration-300 shadow-sm ${
+                  className={`px-5 py-2.5 rounded-full font-bold text-sm transition-all whitespace-nowrap flex-1 sm:flex-none text-center ${
                     filter === cat 
-                      ? "bg-blue-950 text-white shadow-blue-900/30 shadow-lg" 
-                      : "bg-white text-gray-500 border border-gray-200 hover:text-blue-950 hover:border-blue-300"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" 
+                      : "bg-transparent text-slate-500 hover:bg-slate-50 hover:text-blue-950"
                   }`}
                 >
                   {cat}
-                </motion.button>
+                </button>
               ))}
             </div>
 
-            {/* Notice List */}
-            <motion.div layout className="space-y-4 md:space-y-6">
-              <AnimatePresence mode="popLayout">
-                {filteredNotices.length > 0 ? (
-                  filteredNotices.map((notice, index) => {
-                    const styles = getCategoryStyles(notice.category);
-                    const isExpanded = expandedId === notice.id;
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-32 opacity-50">
+                <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                <p className="font-bold text-slate-500 uppercase tracking-widest text-xs">Fetching Notices...</p>
+              </div>
+            ) : (
+              <motion.div layout className="space-y-5">
+                <AnimatePresence mode="popLayout">
+                  {filteredNotices.length > 0 ? (
+                    filteredNotices.map((notice, index) => {
+                      const styles = getCategoryStyles(notice.category);
+                      const isExpanded = expandedId === notice.id;
+                      const dateObj = new Date(notice.created_at);
 
-                    return (
-                      <motion.div
-                        layout
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        // FIX 1: We separated the layout transition from the opacity/y transition 
-                        // so the delay doesn't affect the shrinking animation!
-                        transition={{ 
-                          layout: { type: "spring", bounce: 0.2, duration: 0.4 },
-                          opacity: { duration: 0.4, delay: index * 0.05 },
-                          y: { duration: 0.4, delay: index * 0.05 }
-                        }}
-                        key={notice.id}
-                        onClick={() => toggleExpand(notice.id)}
-                        className={`bg-white rounded-2xl md:rounded-[24px] border ${notice.isPinned ? 'border-yellow-300 shadow-yellow-100' : 'border-gray-200 shadow-sm'} p-5 md:p-8 cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden relative group`}
-                      >
-                        {notice.isPinned && (
-                          <div className="absolute top-0 right-0 bg-yellow-400 text-blue-950 text-[10px] md:text-xs font-bold px-3 py-1 rounded-bl-xl flex items-center gap-1 shadow-sm">
-                            <Pin size={12} className="fill-blue-950" /> PINNED
-                          </div>
-                        )}
-
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                          <motion.div layout="position" className="flex items-center md:flex-col md:items-center gap-4 md:gap-2 shrink-0 md:w-24">
-                            <div className={`p-3 rounded-xl border ${styles.color} flex justify-center items-center`}>
-                              {styles.icon}
+                      return (
+                        <motion.div
+                          layout 
+                          initial={{ opacity: 0, y: 20 }} 
+                          animate={{ opacity: 1, y: 0 }} 
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          key={notice.id}
+                          className={`bg-white rounded-3xl border ${notice.is_pinned ? 'border-amber-300 shadow-amber-100/50 shadow-xl' : 'border-slate-100 shadow-sm hover:shadow-md'} transition-all relative overflow-hidden p-6 md:p-8 cursor-pointer`}
+                        >
+                          {/* Pinned Badge */}
+                          {notice.is_pinned && (
+                            <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 text-[10px] font-black px-4 py-1.5 rounded-bl-2xl flex items-center gap-1.5 shadow-sm">
+                              <Pin size={12} className="fill-amber-900" /> PINNED POST
                             </div>
-                            <div className="text-left md:text-center">
-                              <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Date</p>
-                              <p className="text-blue-950 font-black text-sm">{notice.date.split(",")[0]}</p>
+                          )}
+
+                          <div className="flex flex-col sm:flex-row items-start gap-6 pt-2">
+                            
+                            {/* Calendar Date Badge */}
+                            <div className="hidden sm:flex flex-col items-center shrink-0 w-16 bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden shadow-inner">
+                              <div className={`w-full py-1.5 text-[10px] font-black uppercase tracking-widest text-center text-white ${notice.is_pinned ? 'bg-amber-500' : 'bg-blue-600'}`}>
+                                {dateObj.toLocaleString('default', { month: 'short' })}
+                              </div>
+                              <div className="py-2 text-2xl font-black text-slate-800">
+                                {dateObj.getDate()}
+                              </div>
+                              <div className="w-full pb-2 text-[10px] font-bold text-slate-400 text-center">
+                                {dateObj.getFullYear()}
+                              </div>
                             </div>
-                          </motion.div>
 
-                          <div className="flex-1">
-                            <motion.div layout="position" className="flex items-center gap-2 mb-2">
-                              <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest border ${styles.color}`}>
-                                {notice.category}
-                              </span>
-                            </motion.div>
-                            <motion.h3 layout="position" className="text-lg md:text-2xl font-black text-blue-950 leading-tight mb-2 group-hover:text-blue-600 transition-colors">
-                              {notice.title}
-                            </motion.h3>
-
-                            <AnimatePresence initial={false} mode="popLayout">
-                              {isExpanded ? (
-                                <motion.div 
-                                  key="expanded"
-                                  initial={{ opacity: 0, height: 0 }} 
-                                  animate={{ opacity: 1, height: "auto" }} 
-                                  exit={{ opacity: 0, height: 0 }} 
-                                  transition={{ duration: 0.3 }}
-                                  // FIX 2: Added 'overflow-hidden' so text doesn't spill out while shrinking
-                                  className="text-gray-600 text-sm md:text-base leading-relaxed mt-2 overflow-hidden"
-                                >
-                                  {notice.content}
-                                </motion.div>
-                              ) : (
-                                <motion.div 
-                                  key="collapsed"
-                                  initial={{ opacity: 0 }} 
-                                  animate={{ opacity: 1 }} 
-                                  exit={{ opacity: 0 }} 
-                                  transition={{ duration: 0.3 }}
-                                  className="text-gray-500 text-sm line-clamp-1 mt-2"
-                                >
-                                  {notice.content}
-                                </motion.div>
+                            <div className="flex-1 w-full">
+                              {/* Category Badge above title */}
+                              <div className="mb-3 flex items-center gap-3">
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${styles.color}`}>
+                                  {styles.icon} {notice.category}
+                                </span>
+                                <span className="sm:hidden text-xs font-bold text-slate-400">
+                                  {dateObj.toLocaleDateString()}
+                                </span>
+                              </div>
+                              
+                              {/* Title */}
+                              <h3 className="text-xl md:text-2xl font-black text-slate-900 mb-3 leading-tight group-hover:text-blue-600 transition-colors">
+                                {notice.title}
+                              </h3>
+                              
+                              {/* Image (if any) */}
+                              {notice.image_url && isExpanded && (
+                                <motion.img 
+                                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                  src={notice.image_url} 
+                                  className="w-full h-auto max-h-[400px] object-cover rounded-2xl mb-4 border border-slate-100 shadow-sm" 
+                                />
                               )}
-                            </AnimatePresence>
-                          </div>
+                              
+                              {/* Content */}
+                              <AnimatePresence initial={false} mode="popLayout">
+                                {isExpanded ? (
+                                  <motion.div 
+                                    key="expanded" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} 
+                                    className="text-slate-600 text-sm md:text-base leading-relaxed overflow-hidden"
+                                  >
+                                    <div className="pb-4">
+                                      {notice.content}
+                                    </div>
+                                  </motion.div>
+                                ) : (
+                                  <motion.div 
+                                    key="collapsed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+                                    className="text-slate-500 text-sm line-clamp-2 mb-4"
+                                  >
+                                    {notice.content}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
 
-                          <div className="hidden md:flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-gray-50 text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors mt-1">
-                            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }}>
-                              <ChevronDown size={20} />
-                            </motion.div>
+                              {/* Toggle Button */}
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : notice.id); }}
+                                className="text-blue-600 font-bold text-sm flex items-center gap-1 hover:text-blue-800 transition-colors mt-2"
+                              >
+                                {isExpanded ? "Read Less" : "Read Full Notice"} 
+                                <ChevronDown size={16} className={`transform transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                ) : (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 bg-white rounded-[30px] border border-gray-100 shadow-sm">
-                    <div className="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4"><Megaphone size={32} /></div>
-                    <h3 className="text-xl font-bold text-blue-950 mb-2">No Notices Found</h3>
-                    <p className="text-gray-500 font-medium text-sm">There are currently no announcements in this category.</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                        </motion.div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-24 bg-white rounded-[24px] border border-slate-100">
+                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                        <Megaphone size={32} />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-700 mb-2">No active notices</h3>
+                      <p className="text-slate-400 font-medium text-sm">Check back later for updates in this category.</p>
+                    </div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
           </div>
 
-          {/* RIGHT COLUMN: MARKETING & SOCIAL (Takes up 4 of 12 columns, Sticky on Desktop) */}
-          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-32 h-max">
+          {/* ================= RIGHT: SIDEBAR (INFO & SOCIAL) ================= */}
+          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24 h-max">
             
-            {/* Promo 1: Admission Open Flex (Replace src with your actual flex image) */}
-            <motion.div 
-              whileHover={{ y: -5 }}
-              className="bg-white rounded-[24px] shadow-lg border border-gray-100 overflow-hidden group cursor-pointer"
-            >
-              <div className="relative h-48 md:h-90 w-full overflow-hidden bg-blue-100">
-                {/* PUT YOUR FLEX IMAGE HERE */}
-                <img 
-                  src="Banner.png" 
-                  alt="Admission Open 2026-27" 
-                  className="w-full h-full object-fit transform group-hover:scale-105 transition-transform duration-700" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-950/90 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <span className="bg-yellow-400 text-blue-950 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded mb-2 inline-block">Admissions 26-27</span>
-                  <h3 className="text-white font-black text-xl leading-tight">Secure Your Child's Spot Today!</h3>
-                </div>
+            {/* Admissions Banner */}
+            <motion.div whileHover={{ y: -4 }} className="bg-white rounded-3xl shadow-md border border-slate-100 overflow-hidden group cursor-pointer relative">
+              <div className="relative h-90 w-full overflow-hidden bg-slate-100">
+                <img src="/Banner.png" alt="Admission" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
               </div>
-              <div className="p-5 bg-white">
-                <a href="/#contact" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition flex justify-center items-center gap-2 text-sm shadow-md">
-                  Apply Now <ArrowRight size={16} />
+              <div className="p-3 bg-white">
+                <a href="/#contact" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-colors flex justify-center items-center gap-2 text-sm shadow-md">
+                  Apply Now For 2026-27 <ArrowRight size={18} />
                 </a>
               </div>
             </motion.div>
 
-            {/* Promo 2: Instagram Integration */}
-            <motion.a 
-              href="https://instagram.com" 
-              target="_blank"
-              whileHover={{ scale: 1.02 }}
-              className="block rounded-[24px] p-6 text-white shadow-lg relative overflow-hidden bg-gradient-to-br from-[#833ab4] via-[#fd1d1d] to-[#fcb045]"
-            >
-              {/* Subtle overlay pattern */}
-              <div className="absolute inset-0 bg-white/10 opacity-50 bg-[radial-gradient(#FFF_1px,transparent_1px)] [background-size:10px_10px]" />
-              
-              <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="bg-white/20 p-3 rounded-full backdrop-blur-md">
-                    <Camera size={28} className="text-white" />
+            {/* Quick Contact Block */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+              <h3 className="font-black text-lg text-slate-800 mb-4 flex items-center gap-2">
+                <Info className="text-blue-500 w-5 h-5"/> Need Assistance?
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors cursor-pointer">
+                  <div className="bg-blue-100 p-2.5 rounded-xl text-blue-600"><PhoneCall size={18}/></div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest font-black text-slate-400">Front Desk</p>
+                    <p className="font-bold text-sm text-slate-700">+91 98765 43210</p>
                   </div>
-                  <ExternalLink size={20} className="text-white/70" />
                 </div>
-                <h3 className="font-black text-xl mb-1">Integrity on Instagram</h3>
-                <p className="text-white/90 text-sm mb-4 font-medium">Follow us for daily campus updates, event reels, and student achievements!</p>
-                <div className="inline-block bg-white text-pink-600 font-bold text-sm px-4 py-2 rounded-full shadow-sm">
-                  @integrity.school
+                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:border-emerald-200 transition-colors cursor-pointer">
+                  <div className="bg-emerald-100 p-2.5 rounded-xl text-emerald-600"><Mail size={18}/></div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest font-black text-slate-400">Email Admin</p>
+                    <p className="font-bold text-sm text-slate-700">info@integrity.edu</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* HYPER-AESTHETIC INSTAGRAM CARD */}
+            <motion.a
+              href="https://instagram.com/integrity.school"
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ y: -6, scale: 1.01 }}
+              className="block rounded-3xl p-8 text-white shadow-lg relative overflow-hidden group cursor-pointer"
+              style={{
+                // Authentic Instagram Gradient Mesh
+                background: `radial-gradient(at 100% 0%, #fcb045 0%, transparent 50%), 
+                            radial-gradient(at 0% 100%, #833ab4 0%, transparent 60%), 
+                            #fd1d1d`,
+              }}
+            >
+              {/* Frosted glass texture layer */}
+              <div className="absolute inset-0 z-0 bg-white/5 backdrop-blur-[2px] opacity-60 mix-blend-soft-light" />
+              {/* Subtle noise pattern for texture depth */}
+              <div className="absolute inset-0 z-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20" />
+
+              <div className="relative z-20 flex flex-col h-full justify-between">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="bg-white/20 p-3.5 rounded-2xl backdrop-blur-md shadow-inner border border-white/20 group-hover:scale-105 transition-transform">
+                    <Camera size={32} className="text-white" />
+                  </div>
+                  <ExternalLink size={20} className="text-white/60 group-hover:text-white group-hover:rotate-6 transition-all" />
+                </div>
+
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-white/10 text-white/90 border border-white/20 backdrop-blur-sm shadow-inner mb-3">
+                    <Megaphone size={12} /> SOCIAL HUB
+                  </span>
+                  <h3 className="font-black text-2xl md:text-3xl mb-2 drop-shadow-md tracking-tight">
+                    Integrity on Instagram
+                  </h3>
+                  <p className="text-white/95 text-sm mb-6 font-medium leading-relaxed max-w-sm">
+                    Follow us for daily campus updates, event reels, student features, and a peek into our vibrant campus life!
+                  </p>
+                  <div className="inline-block bg-white text-rose-600 font-black text-sm px-6 py-3 rounded-xl shadow-lg hover:shadow-xl group-hover:scale-105 transition-all">
+                    @integrity.school
+                  </div>
                 </div>
               </div>
             </motion.a>
-
-            {/* Promo 3: Event / Highlight Text Box */}
-            <div className="bg-blue-50 border border-blue-100 rounded-[24px] p-6 shadow-sm">
-              <div className="flex items-center gap-2 text-cyan-600 mb-2">
-                <PartyPopper size={20} />
-                <h3 className="font-black text-sm uppercase tracking-wider">Upcoming Highlight</h3>
-              </div>
-              <h4 className="text-blue-950 font-black text-xl mb-2 leading-tight">Celebration</h4>
-              <p className="text-gray-600 text-sm mb-4"> Grand event coming this April!</p>
-              <a href="#" className="text-blue-600 font-bold text-sm flex items-center gap-1 hover:underline">
-              </a>
-            </div>
 
           </div>
         </div>

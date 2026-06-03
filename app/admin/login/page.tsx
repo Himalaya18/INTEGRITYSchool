@@ -3,22 +3,66 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { ArrowLeft, Lock, Mail, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { signIn, getSession } from "next-auth/react"; // ADDED getSession here!
+import { useRouter } from "next/navigation";
 
 export default function StaffLoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(""); 
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
     
-    // Simulate an API login call
-    setTimeout(() => {
+    try {
+      // The NextAuth/Supabase connection
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Invalid email or password. Please try again.");
+        setIsLoading(false);
+      } else {
+        // SUCCESS! Now we check WHO just logged in.
+        const session = await getSession();
+        
+        // Extract data from NextAuth session
+        const userRole = (session?.user as any)?.role?.toLowerCase() || "";
+        const userId = (session?.user as any)?.id || ""; // <-- IMPORTANT: We need the user ID
+        const userName = session?.user?.name || "Teacher";
+
+        // CRITICAL ADDITION: Save the user to localStorage so the Teacher Dashboard knows who to load!
+        localStorage.setItem("currentUser", JSON.stringify({
+          id: userId,
+          name: userName,
+          role: userRole,
+          email: session?.user?.email
+        }));
+
+        // --- SMART ROUTER ---
+        if (userRole === "principal") {
+          router.push("/admin/dashboard/principal");
+        } 
+        else if (userRole === "admin") {
+          router.push("/papa/dashboard");
+        }
+        else {
+          // Route teachers to their personalized workspace
+          router.push("/teacher/dashboard");
+        }
+      }
+    } catch (err) {
+      setError("A connection error occurred.");
       setIsLoading(false);
-      // Later, we will redirect to the dashboard here:
-      // window.location.href = "/admin/dashboard";
-      alert("This will connect to your database soon!");
-    }, 1500);
+    }
   };
 
   return (
@@ -34,7 +78,7 @@ export default function StaffLoginPage() {
 
       <div className="max-w-5xl w-full bg-white rounded-[30px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
         
-        {/* Left Side - Branding & Info (Hidden on very small mobile screens) */}
+        {/* Left Side - Branding & Info */}
         <div className="hidden md:flex md:w-5/12 bg-blue-950 p-12 flex-col justify-between relative overflow-hidden text-white">
           {/* Background Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
@@ -65,7 +109,7 @@ export default function StaffLoginPage() {
         {/* Right Side - Login Form */}
         <div className="w-full md:w-7/12 p-8 sm:p-12 lg:p-16 flex flex-col justify-center relative">
           
-          {/* CENTERED MOBILE LOGO (Only visible on mobile) */}
+          {/* CENTERED MOBILE LOGO */}
           <div className="md:hidden flex flex-col items-center justify-center gap-3 mb-10 text-center">
             <img src="/logo.png" alt="Logo" className="w-20 h-20 drop-shadow-md" />
             <h2 className="text-2xl font-black text-blue-950">Staff Portal</h2>
@@ -74,24 +118,32 @@ export default function StaffLoginPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <div className="text-center md:text-left">
               <h1 className="text-3xl md:text-4xl font-black text-blue-950 mb-2">Sign In</h1>
-              <p className="text-gray-500 font-medium mb-8 text-sm md:text-base">Please enter your staff credentials to continue.</p>
+              <p className="text-gray-500 font-medium mb-6 text-sm md:text-base">Please enter your staff credentials to continue.</p>
             </div>
+
+            {/* Error Banner */}
+            {error && (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mb-6 p-3 bg-red-50 border border-red-100 text-red-600 text-sm font-bold rounded-xl text-center">
+                {error}
+              </motion.div>
+            )}
 
             <form onSubmit={handleLogin} className="space-y-5">
               
               {/* Employee ID / Email */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Staff Email or ID</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Staff Email</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
                     <Mail size={18} />
                   </div>
                   <input 
                     required 
-                    type="text" 
-                    // ADDED text-gray-900 HERE
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl py-3 pl-11 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" 
-                    placeholder="e.g. teacher@integrity.edu" 
+                    placeholder="e.g. principal@integrity.edu" 
                   />
                 </div>
               </div>
@@ -109,7 +161,8 @@ export default function StaffLoginPage() {
                   <input 
                     required 
                     type={showPassword ? "text" : "password"} 
-                    // ADDED text-gray-900 HERE
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl py-3 pl-11 pr-12 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" 
                     placeholder="••••••••" 
                   />

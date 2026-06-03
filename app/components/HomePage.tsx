@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   GraduationCap,
   BookOpen,
@@ -20,7 +20,9 @@ import {
   Menu,
   X,
   Quote,
-  Camera
+  Camera,
+  MessageCircle,
+  Send
 } from "lucide-react";
 
 // --- Mock Data ---
@@ -58,6 +60,21 @@ export default function HomePage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
+  // --- Chatbot States ---
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<{role: 'user' | 'bot', text: string}[]>([
+    { role: 'bot', text: 'Hello! 👋 Welcome to Integrity S & E School. How can I help you today?' }
+  ]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, isChatOpen]);
+
   const paginate = (newDirection: number) => {
     setDirection(newDirection);
     setCurrentStudent((prev) => {
@@ -68,7 +85,6 @@ export default function HomePage() {
     });
   };
 
-  // The actual submit function that connects to your API
   const handleInquirySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -79,7 +95,7 @@ export default function HomePage() {
       studentName: formData.get('studentName'),
       guardianName: formData.get('guardianName'),
       whatsappNumber: formData.get('whatsappNumber'),
-      guardianEmail: formData.get('guardianEmail'), // Add this line!
+      guardianEmail: formData.get('guardianEmail'),
       village: formData.get('village'),
       className: formData.get('className'),
     };
@@ -93,7 +109,7 @@ export default function HomePage() {
 
       if (response.ok) {
         setSubmitSuccess(true);
-        e.currentTarget.reset(); // clear the form
+        e.currentTarget.reset();
       } else {
         setSubmitError("Something went wrong. Please try calling us instead.");
       }
@@ -102,6 +118,34 @@ export default function HomePage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // --- Chatbot Logic ---
+  const handleChatSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    const userMsg = chatInput.trim();
+    setChatMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setChatInput("");
+
+    // Simulate AI thinking and responding based on keywords
+    setTimeout(() => {
+      const lowerInput = userMsg.toLowerCase();
+      let botReply = "Thank you for your message! For detailed inquiries, please fill out the admission form or call us at +91 7828741586.";
+      
+      if (lowerInput.includes("fee") || lowerInput.includes("cost")) {
+        botReply = "You can download our official Fee Structure PDF from the bottom of this page in the 'Resources' section.";
+      } else if (lowerInput.includes("admission") || lowerInput.includes("apply")) {
+        botReply = "Admissions for the 2026-27 session are currently open! You can fill out the inquiry form in the Contact section above, and we will get back to you.";
+      } else if (lowerInput.includes("location") || lowerInput.includes("address") || lowerInput.includes("where")) {
+        botReply = "Our campus is located Near Panchayat Bhawan, Bhudadaand Bagicha, Dist. Jashpur Nagar, Chhattisgarh 496331.";
+      } else if (lowerInput.includes("class") || lowerInput.includes("grade")) {
+        botReply = "We currently offer admissions from Nursery up to Class 8.";
+      }
+
+      setChatMessages(prev => [...prev, { role: 'bot', text: botReply }]);
+    }, 1000);
   };
 
   const mouseX = useMotionValue(0);
@@ -144,7 +188,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-yellow-300 selection:text-blue-900 overflow-hidden">
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-yellow-300 selection:text-blue-900 overflow-hidden relative">
       
       {/* 1. HERO SECTION */}
       <section onMouseMove={handleMouseMove} className="relative min-h-screen overflow-hidden bg-gradient-to-br from-blue-950 via-blue-800 to-cyan-700 text-white">
@@ -203,9 +247,9 @@ export default function HomePage() {
               A modern approach to education where curiosity meets discipline. We nurture thinkers, creators, and leaders of tomorrow.
             </p>
             <div className="mt-8 md:mt-10 flex gap-4 flex-wrap">
-              <motion.button whileHover={{ scale: 1.05, boxShadow: "0px 10px 30px rgba(250,204,21,0.5)" }} whileTap={{ scale: 0.95 }} className="bg-yellow-400 text-blue-950 px-6 md:px-8 py-3 md:py-4 rounded-xl font-black shadow-[0_8px_30px_rgb(250,204,21,0.3)] transition-colors hover:bg-yellow-300 w-full md:w-auto text-center">
+              <motion.a href="#contact" whileHover={{ scale: 1.05, boxShadow: "0px 10px 30px rgba(250,204,21,0.5)" }} whileTap={{ scale: 0.95 }} className="bg-yellow-400 text-blue-950 px-6 md:px-8 py-3 md:py-4 rounded-xl font-black shadow-[0_8px_30px_rgb(250,204,21,0.3)] transition-colors hover:bg-yellow-300 w-full md:w-auto text-center block">
                 Apply Now
-              </motion.button>
+              </motion.a>
             </div>
           </motion.div>
 
@@ -277,7 +321,7 @@ export default function HomePage() {
 
       {/* 3. PRESIDENT'S MESSAGE (Interactive Editorial Edition) */}
       <section className="py-20 md:py-32 bg-blue-950 text-white relative overflow-hidden group/section">
-        {/* Dynamic Background Glows - They expand when hovering in the section */}
+        {/* Dynamic Background Glows */}
         <motion.div 
           className="absolute top-0 left-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-all duration-1000 group-hover/section:bg-cyan-500/20 group-hover/section:scale-110" 
         />
@@ -287,7 +331,6 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto px-6 md:px-16 grid md:grid-cols-12 gap-12 md:gap-16 items-center relative z-10">
           
-          {/* President Image - 3D Hover Parallax Effect */}
           <motion.div 
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -295,10 +338,8 @@ export default function HomePage() {
             transition={{ duration: 0.8 }}
             className="md:col-span-5 relative group/card cursor-pointer"
           >
-            {/* Animated Decorative Outline - Moves AWAY from the image on hover */}
             <div className="absolute top-4 left-4 w-full h-full border-2 border-yellow-400/50 rounded-[30px] md:rounded-[40px] -z-10 transition-transform duration-500 group-hover/card:translate-x-4 group-hover/card:translate-y-4 group-hover/card:border-yellow-400" />
             
-            {/* Main Image Container - Lifts UP on hover */}
             <div className="bg-white p-2 rounded-[30px] md:rounded-[40px] shadow-2xl transition-all duration-500 group-hover/card:-translate-x-2 group-hover/card:-translate-y-2 group-hover/card:shadow-[0_20px_60px_rgba(34,211,238,0.15)] relative overflow-hidden">
               <img 
                 src="founderpic.jpeg" 
@@ -308,7 +349,6 @@ export default function HomePage() {
             </div>
           </motion.div>
 
-          {/* President Text */}
           <motion.div 
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -316,7 +356,6 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="md:col-span-7"
           >
-            {/* Interactive Quote Icon */}
             <div className="flex items-center gap-3 mb-6 group/quote w-max cursor-default">
               <motion.div 
                 whileHover={{ rotate: 180, scale: 1.1, backgroundColor: "rgba(34, 211, 238, 0.2)" }}
@@ -328,7 +367,6 @@ export default function HomePage() {
               <p className="text-yellow-400 font-bold tracking-widest uppercase text-sm transition-colors group-hover/quote:text-yellow-300">Message from the Society</p>
             </div>
             
-            {/* Magnetic Headline */}
             <motion.h2 
               whileHover={{ x: 10 }}
               transition={{ type: "spring", stiffness: 200 }}
@@ -337,7 +375,6 @@ export default function HomePage() {
               "Education is the most powerful weapon to <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">change the world.</span>"
             </motion.h2>
             
-            {/* Animated Divider line */}
             <motion.div 
               initial={{ width: 0 }}
               whileInView={{ width: "5rem" }}
@@ -346,7 +383,6 @@ export default function HomePage() {
               className="h-1 bg-cyan-500 mb-8 rounded-full" 
             />
             
-            {/* Illuminating Text (Turns bright white when hovering over paragraphs) */}
             <div className="space-y-6">
               <p className="text-blue-100/70 hover:text-white text-sm md:text-lg leading-relaxed font-medium transition-colors duration-300 cursor-default">
                 We established the Integrity Educational Society with a single dream: to ensure that the brilliant minds of Jashpur and Bagicha do not have to leave their homes in search of quality, modern education. 
@@ -356,7 +392,6 @@ export default function HomePage() {
               </p>
             </div>
             
-            {/* Handwritten Signature Block */}
             <div className="mt-10 pt-6 border-t border-white/10 flex justify-between items-end">
               <div>
                 <motion.p 
@@ -625,6 +660,74 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* ================= CHATBOT WIDGET ================= */}
+      <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex flex-col items-end">
+        <AnimatePresence>
+          {isChatOpen && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20, scale: 0.9 }} 
+              animate={{ opacity: 1, y: 0, scale: 1 }} 
+              exit={{ opacity: 0, y: 20, scale: 0.9 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white w-[350px] max-w-[calc(100vw-3rem)] h-[450px] rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-4 border border-gray-200"
+            >
+              {/* Chat Header */}
+              <div className="bg-blue-950 p-4 flex justify-between items-center text-white">
+                <div className="flex items-center gap-2">
+                  <div className="bg-cyan-500 p-1.5 rounded-full"><MessageCircle size={18} /></div>
+                  <div>
+                    <h3 className="font-bold text-sm">Integrity Assistant</h3>
+                    <p className="text-[10px] text-blue-200">School's AI Assistant</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsChatOpen(false)} className="text-blue-200 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Chat Messages Area */}
+              <div className="flex-1 p-4 overflow-y-auto bg-slate-50 flex flex-col gap-3">
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-sm'}`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Chat Input Area */}
+              <div className="p-3 bg-white border-t border-gray-100 text-black">
+                <form onSubmit={handleChatSubmit} className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Type your question..." 
+                    className="flex-1 bg-slate-100 border-none rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                  <button type="submit" disabled={!chatInput.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-black p-2.5 rounded-xl transition-colors">
+                    <Send size={18} />
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Chat Toggle Button */}
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsChatOpen(!isChatOpen)} 
+          className="w-14 h-14 bg-emerald-500 hover:bg-yellow-300 text-white rounded-full shadow-2xl flex items-center justify-center border-2 border-white/20 transition-colors z-50"
+        >
+          {isChatOpen ? <X size={24} /> : <MessageCircle size={28} className="fill-blue-950" />}
+        </motion.button>
+      </div>
+
     </div>
   );
 }

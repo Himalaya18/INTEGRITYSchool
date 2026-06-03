@@ -1,0 +1,254 @@
+// Path: app/teacher/dashboard/ai/page.tsx
+"use client";
+
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  BrainCircuit, Sparkles, FileText, Download, 
+  Save, Printer, CheckCircle2, Loader2, 
+  FileQuestion, BookOpen, LayoutGrid, Wand2,
+  Bold, Italic, List, AlignLeft, Type, Share2,
+  SendHorizontal
+} from "lucide-react";
+
+export default function AITeachingAssistant() {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [quickPrompt, setQuickPrompt] = useState("");
+  
+  // Refined Form State
+  const [config, setConfig] = useState({
+    type: "Quiz",
+    grade: "Class 8",
+    subject: "Mathematics",
+    topic: "",
+    difficulty: "Medium",
+    questions: "10"
+  });
+
+  const handleGenerate = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!config.topic && !quickPrompt) return;
+    
+    setIsGenerating(true);
+    setGeneratedContent(null);
+
+    // Simulate AI Generation Delay
+    setTimeout(() => {
+      const mockResult = `
+# ${config.type === 'Quiz' ? 'Assessment' : 'Study Guide'}: ${config.topic || quickPrompt}
+**Target:** ${config.grade} | **Subject:** ${config.subject} | **Level:** ${config.difficulty}
+
+---
+
+### Section A: Core Understanding (1 Mark Each)
+1. What is the standard form of a linear equation in one variable?
+2. Solve for x: 3x - 5 = 10
+3. True or False: An equation must always have an equals (=) sign.
+
+### Section B: Application (2 Marks Each)
+4. The sum of two consecutive even numbers is 34. Formulate the equation.
+5. If 5 is subtracted from three times a number, the result is 16. Find the number.
+
+### Section C: Advanced Problem Solving (5 Marks)
+6. A father is currently three times as old as his son. After 12 years, his age will be exactly twice the age of his son. 
+   a) Create the algebraic equations representing this scenario.
+   b) Solve the equations to find their present ages. Show all steps clearly.
+      `;
+      setGeneratedContent(mockResult);
+      setIsGenerating(false);
+      setQuickPrompt("");
+    }, 2000); 
+  };
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto h-full flex flex-col relative pb-24 space-y-6">
+      
+      {/* ================= HEADER & QUICK PROMPT ================= */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 shrink-0 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+        <div className="shrink-0">
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center"><BrainCircuit className="w-5 h-5" /></div>
+            AI Co-Pilot
+          </h1>
+          <p className="text-slate-500 font-medium mt-1 text-sm">Generate structured educational content in seconds.</p>
+        </div>
+        
+        {/* Magic Input Bar */}
+        <div className="w-full xl:w-1/2 relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+          <div className="relative flex items-center bg-white border border-slate-200 rounded-full p-1.5 shadow-sm focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100 transition-all">
+            <div className="pl-4 pr-2 text-purple-500"><Sparkles className="w-4 h-4"/></div>
+            <input 
+              type="text" 
+              value={quickPrompt}
+              onChange={(e) => setQuickPrompt(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+              placeholder="e.g. Create a 10-question quiz on Algebra for Class 8..." 
+              className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-700 placeholder:text-slate-400"
+            />
+            <button 
+              onClick={() => handleGenerate()}
+              disabled={!quickPrompt || isGenerating}
+              className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0"
+            >
+              <SendHorizontal className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-[600px]">
+        
+        {/* ================= LEFT COLUMN: SLEEK CONFIGURATOR ================= */}
+        <div className="lg:col-span-4 flex flex-col gap-6 overflow-y-auto no-scrollbar">
+          
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="font-black text-slate-800 flex items-center gap-2">
+                <Wand2 className="w-4 h-4 text-purple-500" /> Structure Builder
+              </h2>
+            </div>
+
+            <form onSubmit={handleGenerate} className="p-6 flex flex-col gap-6 flex-1">
+              
+              {/* Segmented Control for Type */}
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Content Format</label>
+                <div className="flex bg-slate-100 p-1 rounded-xl">
+                  <button type="button" onClick={() => setConfig({...config, type: "Quiz"})} className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${config.type === "Quiz" ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                    <FileQuestion className="w-4 h-4" /> Quiz / Test
+                  </button>
+                  <button type="button" onClick={() => setConfig({...config, type: "Notes"})} className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${config.type === "Notes" ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                    <BookOpen className="w-4 h-4" /> Study Notes
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid Layout for Dropdowns */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Target Class</label>
+                  <select value={config.grade} onChange={e=>setConfig({...config, grade: e.target.value})} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-purple-500 focus:bg-white transition-colors appearance-none cursor-pointer">
+                    <option>Class 6</option><option>Class 7</option><option>Class 8</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Subject</label>
+                  <select value={config.subject} onChange={e=>setConfig({...config, subject: e.target.value})} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-purple-500 focus:bg-white transition-colors appearance-none cursor-pointer">
+                    <option>Mathematics</option><option>Science</option><option>English</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Full Width Input */}
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Core Topic / Chapter</label>
+                <input required type="text" value={config.topic} onChange={e=>setConfig({...config, topic: e.target.value})} placeholder="e.g. Linear Equations" className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-purple-500 focus:bg-white transition-colors placeholder:font-medium" />
+              </div>
+
+              {/* Conditional Grid Inputs */}
+              <AnimatePresence>
+                {config.type === "Quiz" && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="grid grid-cols-2 gap-4 overflow-hidden">
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Difficulty</label>
+                      <select value={config.difficulty} onChange={e=>setConfig({...config, difficulty: e.target.value})} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-purple-500 focus:bg-white transition-colors appearance-none cursor-pointer">
+                        <option>Easy</option><option>Medium</option><option>Hard</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Total Questions</label>
+                      <input type="number" min="1" max="50" value={config.questions} onChange={e=>setConfig({...config, questions: e.target.value})} className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-purple-500 focus:bg-white transition-colors" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Submit Button aligned to bottom */}
+              <div className="mt-auto pt-4 border-t border-slate-100">
+                <button type="submit" disabled={isGenerating || (!config.topic && !quickPrompt)} className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-bold py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                  {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Synthesizing...</> : <><Sparkles className="w-4 h-4 text-purple-400" /> Build Content</>}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
+        {/* ================= RIGHT COLUMN: PRO EDITOR ================= */}
+        <div className="lg:col-span-8 flex flex-col h-full">
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden">
+            
+            {/* Professional Toolbar */}
+            <div className="border-b border-slate-200 bg-white p-3 flex flex-wrap items-center justify-between gap-4 shrink-0">
+              
+              {/* Text Formatting Group */}
+              <div className="flex items-center bg-slate-50 rounded-lg p-1 border border-slate-100">
+                <button className="p-2 text-slate-600 hover:bg-white hover:shadow-sm rounded-md transition-all" title="Text Style"><Type className="w-4 h-4"/></button>
+                <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                <button className="p-2 text-slate-600 hover:bg-white hover:shadow-sm rounded-md transition-all" title="Bold"><Bold className="w-4 h-4"/></button>
+                <button className="p-2 text-slate-600 hover:bg-white hover:shadow-sm rounded-md transition-all" title="Italic"><Italic className="w-4 h-4"/></button>
+                <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                <button className="p-2 text-slate-600 hover:bg-white hover:shadow-sm rounded-md transition-all" title="List"><List className="w-4 h-4"/></button>
+                <button className="p-2 text-slate-600 hover:bg-white hover:shadow-sm rounded-md transition-all" title="Align"><AlignLeft className="w-4 h-4"/></button>
+              </div>
+              
+              {/* Actions Group */}
+              <div className="flex items-center gap-2">
+                <button disabled={!generatedContent} className="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors" title="Print"><Printer className="w-5 h-5"/></button>
+                <button disabled={!generatedContent} className="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors" title="Download"><Download className="w-5 h-5"/></button>
+                <button disabled={!generatedContent} className="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors" title="Share"><Share2 className="w-5 h-5"/></button>
+                <div className="w-px h-6 bg-slate-200 mx-2"></div>
+                <button disabled={!generatedContent} className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-50 hover:bg-emerald-100 transition-colors">
+                  <Save className="w-4 h-4" /> Save to Drive
+                </button>
+              </div>
+            </div>
+
+            {/* Document Editor Area */}
+            <div className="flex-1 overflow-y-auto bg-[#f8f9fc] relative">
+              <AnimatePresence mode="wait">
+                
+                {isGenerating ? (
+                  // Glowing Loading State
+                  <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col items-center justify-center p-8">
+                    <div className="w-full max-w-2xl space-y-6">
+                      <div className="h-10 bg-slate-200/50 rounded-xl w-3/4 animate-pulse"></div>
+                      <div className="h-4 bg-slate-200/50 rounded-md w-full animate-pulse"></div>
+                      <div className="h-4 bg-slate-200/50 rounded-md w-full animate-pulse delay-75"></div>
+                      <div className="h-4 bg-slate-200/50 rounded-md w-5/6 animate-pulse delay-150"></div>
+                      <div className="h-32 bg-slate-200/50 rounded-xl w-full animate-pulse mt-8"></div>
+                    </div>
+                  </motion.div>
+                ) : generatedContent ? (
+                  // Document View
+                  <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-8 md:p-12">
+                    <div className="max-w-3xl mx-auto bg-white p-10 md:p-16 rounded shadow-sm border border-slate-200 min-h-[800px]">
+                      <textarea 
+                        value={generatedContent} 
+                        onChange={(e) => setGeneratedContent(e.target.value)}
+                        className="w-full h-full min-h-[700px] outline-none resize-none text-slate-800 font-medium leading-relaxed"
+                        style={{ fontFamily: "Georgia, serif", fontSize: "1.05rem" }}
+                      />
+                    </div>
+                  </motion.div>
+                ) : (
+                  // Empty State
+                  <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+                    <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+                      <LayoutGrid className="w-10 h-10 text-slate-300"/>
+                    </div>
+                    <h3 className="text-xl font-black text-slate-700 mb-2">Blank Canvas</h3>
+                    <p className="font-medium text-slate-500 max-w-md">Use the Quick Prompt bar above or configure specific parameters on the left to generate new teaching material.</p>
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
