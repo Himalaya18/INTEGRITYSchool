@@ -8,11 +8,9 @@ import {
   Menu, X, Quote, Camera, MessageCircle, Send
 } from "lucide-react";
 
-// --- Mock Data ---
+// ---Data ---
 const students = [
-  { id: 1, name: "Aarav Sharma", achievement: "National Science Olympiad Winner", image: "https://images.unsplash.com/photo-1595454223600-91fbbeb2ccbc?q=80&w=500&auto=format&fit=crop", color: "bg-blue-500" },
-  { id: 2, name: "Priya Patel", achievement: "Lead of School Debate Team", image: "https://images.unsplash.com/photo-1503919005314-30d93d07d823?q=80&w=500&auto=format&fit=crop", color: "bg-pink-500" },
-  { id: 3, name: "Rohan Gupta", achievement: "State Level Football Captain", image: "https://images.unsplash.com/photo-1540479859555-17af45c78602?q=80&w=500&auto=format&fit=crop", color: "bg-yellow-500" },
+  { id: 1, name: "ADITYA BHAGAT", achievement: "Class 5th Board topper", image: "bhagat.png", color: "bg-blue-500" },
 ];
 
 export default function HomePage() {
@@ -202,6 +200,7 @@ export default function HomePage() {
                   <a href="/gallery" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-bold text-white hover:text-yellow-400 border-b border-white/10 pb-2">GALLERY</a>
                   <a href="/faculty" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-bold text-cyan-300 hover:text-yellow-400 border-b border-white/10 pb-2">FACULTY</a>
                   <a href="#contact" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-bold text-white hover:text-yellow-400 pb-2">CONTACT</a>
+                  <a href="/notices" className="hover:text-yellow-400 hover:-translate-y-1 transition-transform block">DIGITAL CAMPUS WALL</a>
                 </div>
               </motion.div>
             )}
@@ -410,7 +409,7 @@ export default function HomePage() {
                 className="absolute w-[90vw] md:w-full max-w-sm cursor-grab"
               >
                 <div className="bg-white rounded-[30px] md:rounded-[40px] p-3 md:p-4 shadow-2xl border border-gray-100 transform hover:scale-[1.02] transition-transform duration-300 pointer-events-none">
-                  <img src={students[currentStudent].image} alt={students[currentStudent].name} className="w-full h-[250px] md:h-[300px] object-cover rounded-[20px] md:rounded-[30px] mb-4 md:mb-6 pointer-events-none" />
+                  <img  src={students[currentStudent].image} alt={students[currentStudent].name} className="w-full h-[200px] md:h-[350px] object-cover rounded-[20px] md:rounded-[30px] mb-4 md:mb-6 pointer-events-none" />
                   <div className="text-center pb-2 md:pb-4">
                     <h3 className="text-xl md:text-2xl font-black text-blue-950">{students[currentStudent].name}</h3>
                     <motion.p key={`badge-${currentStudent}`} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, type: "spring" }} className={`inline-block mt-2 px-3 md:px-4 py-1 rounded-full text-white text-xs md:text-sm font-bold ${students[currentStudent].color}`}>

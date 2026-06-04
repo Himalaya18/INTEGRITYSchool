@@ -21,10 +21,10 @@ const staffData = [
   { id: 5, name: "Anjani Gupta", role: "Teacher", subject: "Mathematics", phone: "+91 98765 43214", image: "Anjani.jpg" },
   { id: 6, name: "Purnima Chouhan", role: "Teacher", subject: "Sanskrit", phone: "+91 98765 43215", image: "Purnima.jpg" },
   { id: 7, name: "Maneesha Singh", role: "Teacher", subject: "SST", phone: "+91 98765 43216", image: "Manisha.jpg" },
-  { id: 8, name: "Ms. Neha Gupta", role: "Teacher", subject: "Environmental Studies (EVS)", phone: "+91 98765 43217", image: "teach.jpg"},
-  { id: 9, name: "Mr. Rahul Yadav", role: "Sports Faculty", subject: "Physical Education (PT)", phone: "+91 98765 43218", image: "teach.jpg"},
-  { id: 10, name: "Mrs. Meena Kumari", role: "Primary Teacher", subject: "All Subjects (Nursery - KG2)", phone: "+91 98765 43219", image: "teach.jpg" },
-  { id: 11, name: "Ms. Aarti Joshi", role: "Teacher", subject: "Art & Craft", phone: "+91 98765 43220", image: "teach.jpg"},
+  { id: 8, name: "Ms. Neha Gupta", role: "Teacher", subject: "Environmental Studies (EVS)", phone: "+91 98765 43217", image: "logo.png"},
+  { id: 9, name: "Mr. Rahul Yadav", role: "Sports Faculty", subject: "Physical Education (PT)", phone: "+91 98765 43218", image: "logo.png"},
+  { id: 10, name: "Mrs. Meena Kumari", role: "Primary Teacher", subject: "All Subjects (Nursery - KG2)", phone: "+91 98765 43219", image: "logo.png" },
+  { id: 11, name: "Ms. Aarti Joshi", role: "Teacher", subject: "Art & Craft", phone: "+91 98765 43220", image: "logo.png"},
 ];
 
 export default function FacultyPage() {

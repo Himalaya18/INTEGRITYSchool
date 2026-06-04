@@ -135,8 +135,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           </div>
           
           <div className="flex items-center gap-3 lg:gap-4">
-            <button className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold py-2.5 px-4 rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm">
-              <Sparkles className="w-4 h-4" /> AI Co-Pilot
+            <button className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold py-2.5 px-4 rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm" onClick={() => router.push("/teacher/dashboard/ai")}>
+              <Sparkles className="w-4 h-4" /> Integrity AI
             </button>
             <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block"></div>
             <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors bg-slate-50 rounded-full border border-slate-200">
@@ -179,7 +179,7 @@ function SidebarContent({ profile, pathname, handleLogout, onNavClick }: any) {
         <NavItem href="/teacher/dashboard/papers" icon={<FileQuestion/>} label="Question Papers" active={pathname === "/teacher/dashboard/papers"} onClick={onNavClick} />
         
         <p className="px-4 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 mt-6">Smart Tools & Growth</p>
-        <NavItem href="/teacher/dashboard/ai" icon={<BrainCircuit/>} label="AI Assistant" badge="Beta" highlight active={pathname === "/teacher/dashboard/ai"} onClick={onNavClick} />
+        <NavItem href="/teacher/dashboard/ai" icon={<BrainCircuit/>} label="Integrity AI" badge="Beta" highlight active={pathname === "/teacher/dashboard/ai"} onClick={onNavClick} />
         <NavItem href="/teacher/dashboard/learning" icon={<GraduationCap/>} label="Teacher Learning Hub" active={pathname === "/teacher/dashboard/learning"} onClick={onNavClick} />
         <NavItem href="/teacher/dashboard/messages" icon={<MessageSquare/>} label="Parent Communication" active={pathname === "/teacher/dashboard/messages"} onClick={onNavClick} />
       </nav>

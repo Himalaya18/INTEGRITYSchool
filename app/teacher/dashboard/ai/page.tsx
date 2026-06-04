@@ -13,6 +13,7 @@ import {
 
 export default function AITeachingAssistant() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [quickPrompt, setQuickPrompt] = useState("");
   
@@ -26,39 +27,143 @@ export default function AITeachingAssistant() {
     questions: "10"
   });
 
-  const handleGenerate = (e?: React.FormEvent) => {
+  // ==========================================
+  // AI GENERATION LOGIC (Safe Parsing)
+  // ==========================================
+  const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!config.topic && !quickPrompt) return;
     
     setIsGenerating(true);
     setGeneratedContent(null);
 
-    // Simulate AI Generation Delay
-    setTimeout(() => {
-      const mockResult = `
-# ${config.type === 'Quiz' ? 'Assessment' : 'Study Guide'}: ${config.topic || quickPrompt}
-**Target:** ${config.grade} | **Subject:** ${config.subject} | **Level:** ${config.difficulty}
+    try {
+      const response = await fetch('/api/generate-material', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          quickPrompt: quickPrompt,
+          config: config 
+        }),
+      });
 
----
+      // SAFE PARSING: Read as text first to prevent the "<!DOCTYPE" crash
+      const textData = await response.text();
+      let data;
+      
+      try {
+        data = JSON.parse(textData);
+      } catch (parseError) {
+        throw new Error("Server returned an invalid format. Ensure your API route is working correctly.");
+      }
 
-### Section A: Core Understanding (1 Mark Each)
-1. What is the standard form of a linear equation in one variable?
-2. Solve for x: 3x - 5 = 10
-3. True or False: An equation must always have an equals (=) sign.
-
-### Section B: Application (2 Marks Each)
-4. The sum of two consecutive even numbers is 34. Formulate the equation.
-5. If 5 is subtracted from three times a number, the result is 16. Find the number.
-
-### Section C: Advanced Problem Solving (5 Marks)
-6. A father is currently three times as old as his son. After 12 years, his age will be exactly twice the age of his son. 
-   a) Create the algebraic equations representing this scenario.
-   b) Solve the equations to find their present ages. Show all steps clearly.
-      `;
-      setGeneratedContent(mockResult);
+      if (response.ok) {
+        setGeneratedContent(data.reply);
+      } else {
+        throw new Error(data.reply || "Unknown Server Error");
+      }
+    } catch (error: any) {
+      console.error("Generation Error:", error);
+      setGeneratedContent(`# Error\nFailed to generate content: ${error.message}\nPlease check your API key and connection.`);
+    } finally {
       setIsGenerating(false);
-      setQuickPrompt("");
-    }, 2000); 
+      setQuickPrompt(""); 
+    }
+  };
+
+  // ==========================================
+  // SAVE TO DATABASE LOGIC
+  // ==========================================
+  const handleSaveToDrive = async () => {
+    if (!generatedContent) return;
+    setIsSaving(true);
+
+    try {
+      // Get the logged-in teacher's ID
+      const sessionStr = localStorage.getItem("currentUser");
+      const teacherId = sessionStr ? JSON.parse(sessionStr).id : "TEMP_EMP_123";
+
+      const response = await fetch('/api/materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacher_id: teacherId,
+          content_type: config.type,
+          grade: config.grade,
+          subject: config.subject,
+          topic: config.topic || quickPrompt || "General Content",
+          content_markdown: generatedContent
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save to database");
+      
+      alert("Success! Material saved to your digital drive.");
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("Could not save the material. Ensure the database table exists.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ==========================================
+  // EXPORT UTILITIES (Print, Download, Share)
+  // ==========================================
+  const handlePrint = () => {
+    if (!generatedContent) return;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Integrity S & E - Generated Material</title>
+            <style>
+              body { font-family: Georgia, serif; line-height: 1.6; padding: 40px; color: #333; }
+              h1, h2, h3 { color: #1e293b; }
+              pre { background: #f1f5f9; padding: 15px; border-radius: 8px; }
+            </style>
+          </head>
+          <body>
+            ${generatedContent.replace(/\n/g, '<br/>')}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleDownload = () => {
+    if (!generatedContent) return;
+    const blob = new Blob([generatedContent], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const fileName = `${config.grade}_${config.subject}_${config.topic || 'Material'}.md`.replace(/\s+/g, '_');
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShare = async () => {
+    if (!generatedContent) return;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Integrity S & E: ${config.subject} Material`,
+          text: `Here is the generated ${config.type} for ${config.grade} - ${config.topic}.\n\n${generatedContent.substring(0, 100)}...`,
+        });
+      } catch (error) {
+        console.log("Sharing failed or was cancelled.", error);
+      }
+    } else {
+      navigator.clipboard.writeText(generatedContent);
+      alert("Material copied to clipboard! You can now paste it in WhatsApp or Email.");
+    }
   };
 
   return (
@@ -89,7 +194,7 @@ export default function AITeachingAssistant() {
             />
             <button 
               onClick={() => handleGenerate()}
-              disabled={!quickPrompt || isGenerating}
+              disabled={(!quickPrompt && !config.topic) || isGenerating}
               className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0"
             >
               <SendHorizontal className="w-4 h-4" />
@@ -144,7 +249,7 @@ export default function AITeachingAssistant() {
               {/* Full Width Input */}
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Core Topic / Chapter</label>
-                <input required type="text" value={config.topic} onChange={e=>setConfig({...config, topic: e.target.value})} placeholder="e.g. Linear Equations" className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-purple-500 focus:bg-white transition-colors placeholder:font-medium" />
+                <input type="text" value={config.topic} onChange={e=>setConfig({...config, topic: e.target.value})} placeholder="e.g. Linear Equations" className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-purple-500 focus:bg-white transition-colors placeholder:font-medium" />
               </div>
 
               {/* Conditional Grid Inputs */}
@@ -194,15 +299,47 @@ export default function AITeachingAssistant() {
                 <button className="p-2 text-slate-600 hover:bg-white hover:shadow-sm rounded-md transition-all" title="Align"><AlignLeft className="w-4 h-4"/></button>
               </div>
               
-              {/* Actions Group */}
+              {/* Actions Group with Wired Buttons */}
               <div className="flex items-center gap-2">
-                <button disabled={!generatedContent} className="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors" title="Print"><Printer className="w-5 h-5"/></button>
-                <button disabled={!generatedContent} className="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors" title="Download"><Download className="w-5 h-5"/></button>
-                <button disabled={!generatedContent} className="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors" title="Share"><Share2 className="w-5 h-5"/></button>
-                <div className="w-px h-6 bg-slate-200 mx-2"></div>
-                <button disabled={!generatedContent} className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-50 hover:bg-emerald-100 transition-colors">
-                  <Save className="w-4 h-4" /> Save to Drive
+                <button 
+                  onClick={handlePrint}
+                  disabled={!generatedContent} 
+                  className="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors" 
+                  title="Print"
+                >
+                  <Printer className="w-5 h-5"/>
                 </button>
+                
+                <button 
+                  onClick={handleDownload}
+                  disabled={!generatedContent} 
+                  className="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors" 
+                  title="Download as Markdown"
+                >
+                  <Download className="w-5 h-5"/>
+                </button>
+                
+                <button 
+                  onClick={handleShare}
+                  disabled={!generatedContent} 
+                  className="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors" 
+                  title="Share or Copy"
+                >
+                  <Share2 className="w-5 h-5"/>
+                </button>
+                
+                <div className="w-px h-6 bg-slate-200 mx-2"></div>
+                
+                {/* WIRED SAVE BUTTON */}
+                <button 
+                  onClick={handleSaveToDrive}
+                  disabled={!generatedContent || isSaving} 
+                  className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-50 hover:bg-emerald-100 transition-colors"
+                >
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} 
+                  {isSaving ? "Saving..." : "Save to Drive"}
+                </button>
+
               </div>
             </div>
 
@@ -228,7 +365,7 @@ export default function AITeachingAssistant() {
                       <textarea 
                         value={generatedContent} 
                         onChange={(e) => setGeneratedContent(e.target.value)}
-                        className="w-full h-full min-h-[700px] outline-none resize-none text-slate-800 font-medium leading-relaxed"
+                        className="w-full h-full min-h-[700px] outline-none resize-none text-slate-800 font-medium leading-relaxed custom-scrollbar"
                         style={{ fontFamily: "Georgia, serif", fontSize: "1.05rem" }}
                       />
                     </div>
